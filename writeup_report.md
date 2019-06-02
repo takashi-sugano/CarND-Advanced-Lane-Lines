@@ -18,10 +18,10 @@ The goals / steps of this project are the following:
 [image1]: ./output_images/camera_calibration.jpg "Undistorted"
 [image2]: ./output_images/test1.jpg "Road Transformed"
 [image3]: ./output_images/color_binary.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image4]: ./output_images/warped_image0.jpg "Warp Example"
+[image5]: ./output_images/find_lane.jpg "Fit Visual"
+[image6]: ./output_images/test3.jpg "Output"
+[video1]: ./output_images/project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -55,35 +55,48 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines 7 through 26 of 3rd code cell of `AdvancedLaneLines.ipynb`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform includes a function called `warped()`, which appears in the 4th code cell of the IPython notebook.  The `warped()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+width    = 0.143
+height   = 0.628
+offset_x = 200  # margin for curve road
+imshape  = img.shape
+img_size = (img.shape[1]+2*offset_x, img.shape[0])
+
+# set polygon shape
+apex_c     = [int(imshape[1]/2), int(imshape[0]*height)]
+apex_w     = int(imshape[1]*width)
+apex_bx    = int(imshape[1]*0.0)-offset_x
+apex_by    = int(imshape[0]*0.0)
+
+src        = np.float32([[apex_bx,imshape[0]-apex_by],
+                        [apex_c[0]-apex_w/2, apex_c[1]], 
+                        [apex_c[0]+apex_w/2, apex_c[1]],
+                        [imshape[1]-apex_bx,imshape[0]-apex_by]])
+dst        = np.float32([[0,imshape[0]],
+                        [0, 0], 
+                        [imshape[1]+2*offset_x,0],
+                        [imshape[1]+2*offset_x,imshape[0]]])
 ```
+The parameter `width` and `height` were determined by searching using the function `hist()` in the 5th code cell of the IPython notebook.
+The parameter `offset_x` is used to expand the image. This is because the window is set to a large trapezoid so that the lane does not extend beyond the window even in the case of a curve.
+
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| -200,   720   |  0,    720    | 
+| 548,    452   |  0,      0    |
+| 731,    452   | 1680,    0    |
+| 1480,   720   | 1680,  720    |
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
