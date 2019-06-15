@@ -29,14 +29,8 @@ The goals / steps of this project are the following:
 
 ---
 
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric 
-You're reading it!
-
 ### Camera Calibration
-
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+#### 1. The camera matrix and distortion coefficients.
 
 The code for this step is contained in the first and second code cell of the IPython notebook located in "./AdvancedLaneLines.ipynb".  
 
@@ -48,18 +42,19 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 
 ### Pipeline (single images)
 
-#### 1. Provide an example of a distortion-corrected image.
+#### 1. An example of a distortion-corrected image.
 
 To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
 ![alt text][image2]
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+#### 2. Create a thresholded binary image using color transforms and gradients.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines 7 through 26 of 3rd code cell of `AdvancedLaneLines.ipynb`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used the HLS color space. The S channel is divided by the center value because it highlights the noticeable parts well. Then, I added the edge extraction using the L channel edge extraction that is not affected by the brightness. Edge extraction was set by narrowing down to a narrow range of low values because the wider the threshold, the larger the noise.(thresholding steps at lines 7 through 26 of 3rd code cell in `AdvancedLaneLines.ipynb`).  
+Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+#### 3. Perspective transform.
 
 The code for my perspective transform includes a function called `warped()`, which appears in the 4th code cell of the IPython notebook.  The `warped()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
@@ -102,19 +97,31 @@ I verified that my perspective transform was working as expected by drawing the 
 
 ![alt text][image4]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
+#### 4. Identified lane-line pixels and fit their positions with a polynomial.
+
+ I used the sliding window method to extract the lane marker pixels.
+First, we created a histogram that integrates the number of points per binary image x-axis over the bottom half of the image. And I estimated the position of the center of the lane by selecting the largest value in the histogram. I processed the right lane and the left lane by dividing this process into the right side and the left side of the image.
+
+ Starting from there, I set a window in the image and extracted the non-zero pixels in that window to detect the white line part.
+In this process, hyperparameters are the window width and height and the number of windows on the Y axis, but it was tuned while looking at the detection results.
 Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
 
 ![alt text][image5]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### 5. Calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+The curvature and the position of the vehicle were calculated by simple polynomial approximation. the conversion parameters from pixel to real length are follows:
+ Y dimension: 30/720 (meters per pixel)
+ X dimension: 3.7/700 (meters per pixel)
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I did this in lines 6 through 25 of 9th code cell in `AdvancedLaneLines.ipynb`
+
+
+#### 6. Example image of your result plotted back down onto the road such that the lane area is identified clearly.
+
+I implemented this step in lines 1 through 41 of 11th cell in my code in `AdvancedLaneLines.ipynb` in the function `draw_detected_lane_boundaries()`.  Here is an example of my result on a test image:
 
 ![alt text][image6]
 
@@ -122,14 +129,27 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+#### 1. Final video output.
 
-Here's a [link to my video result](./project_video.mp4)
+My pipeline should perform reasonably well on the entire project video.
+Here's a [link to my video result](./output_images/project_video.mp4)
 
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. Briefly discuss any problems / issues in the implementation of this project.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+One of my ideas is that in the Perspective transform, I extended the window to the outside of the image and took the top of the lane widely. This is to prevent the top of the lane from escaping the window in the curve.
+It works as intended, so there are no major issues. However, because the upper end of the lane will be extended greatly, the accuracy may be aggravated.
+
+In this regard, it can be considered to use weights when fitting a sequence of points. The upper part of the lane is less accurate per pixel, so it might be better to reduce the contribution to the quadratic function fitting.
+
+In addition, I think that it could be solved if the shape of the window I can be changed according to the curvature of the road. (For example, use the previous curvature to change the trapezoidal shape)
+However, in this case, it is necessary to devise the correction since the image is distorted.
+
+In order to make the output more robust, I think it is better to use the results of the previous frame.
+
+The curvature and the position of the vehicle generally do not change rapidly, so the accuracy of the result of the previous frame may be increased by taking into account the movement of the vehicle.
+
+Similarly in detection of lane pixels, overlapping the warped image with the previous frame may increase robustness. At that time, the previous frame needs to be translated and rotated in consideration of the movement of the vehicle.
